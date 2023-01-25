@@ -18,6 +18,7 @@ def get_service(SCOPES):
         function to get service, fetch email through Gmail API
         Args:
             SCOPES: access setting to Gmail, see https://developers.google.com/identity/protocols/oauth2/scopes#gmail under Gmail API v1
+            Also need token file: either have access to Gmail account or need token.json file in directory the get_attachment.py is located
         Return:
             service: instance to access message information
     """
@@ -46,7 +47,6 @@ def get_service(SCOPES):
         return service
 
     except HttpError as error:
-        # TODO(developer) - Handle errors from gmail API.
         print(f'An error occurred: {error}')
         return None
 
