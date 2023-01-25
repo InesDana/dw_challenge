@@ -1,18 +1,3 @@
-# Copyright 2018 Google LLC
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
-# [START gmail_quickstart]
 from __future__ import print_function
 
 import os.path
@@ -23,6 +8,8 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
+import base64
+from apiclient import errors
 
 
 
@@ -64,32 +51,74 @@ def get_service(SCOPES):
         return None
 
 
-def fetchMessage(service, message):
+def get_subject(service, message):
+    """get message subject
+    Args:
+        service: instance to access message information
+        message: message information, see https://developers.google.com/gmail/api/reference/rest/v1/users.messages
+    Return:
+        subject: subject of the message
+    adapted from: https://stackoverflow.com/questions/55144261/python-how-to-get-the-subject-of-an-email-from-gmail-api
+    """
     messageheader = service.users().messages().get(userId="me", id=message["id"], format="full",
                                                    metadataHeaders=None).execute()
     headers = messageheader["payload"]["headers"]
     subject = [i['value'] for i in headers if i["name"] == "Subject"]
     return subject
 
+def get_attachments(service, user_id, msg_id, store_dir=''):
+    """Get and store attachment from Message with given id.
+
+    Args:
+    service: Authorized Gmail API service instance.
+    user_id: User's email address. The special value "me"
+    can be used to indicate the authenticated user.
+    msg_id: ID of Message containing attachment.
+    prefix: prefix which is added to the attachment filename on saving
+
+    adapted from: https://stackoverflow.com/questions/25832631/download-attachments-from-gmail-using-gmail-api
+    """
+    try:
+        message = service.users().messages().get(userId=user_id, id=msg_id).execute()
+        try:
+            for part in message['payload']['parts']:
+                newvar = part['body']
+                if 'attachmentId' in newvar:
+                    att_id = newvar['attachmentId']
+                    att = service.users().messages().attachments().get(userId=user_id, messageId=msg_id,
+                                                                       id=att_id).execute()
+                    data = att['data']
+                    file_data = base64.urlsafe_b64decode(data.encode('UTF-8'))
+                    print(part['filename'])
+                    path = ''.join([store_dir, part['filename']])
+                    f = open(path, 'wb')
+                    f.write(file_data)
+                    f.close()
+        #TODO better filter for messages that have no attachment.
+        except:
+            print('Message has no attachment.')
+            pass
+    except errors.HttpError as error:
+        print
+        'An error occurred: %s' % error
 
 if __name__ == '__main__':
     # If modifying these scopes, delete the file token.json.
     SCOPES = ['https://www.googleapis.com/auth/gmail.readonly']
+
     service = get_service(SCOPES)
-    results = service.users().labels().list(userId='me').execute()
-    labels = results.get('labels', [])
+
+    #get messages from service
     message_results = service.users().messages().list(userId='me').execute()
     messages = message_results.get('messages', [])
 
-    test='Your report is ready'
+    # filter for messages with the subject test
+    test = 'Your report is ready'
 
-    print('email id:')
     for message in messages:
-        print(message['id'])
-        subject= fetchMessage(service, message) 
+        subject = get_subject(service, message)
         if subject[0] == test:
-            print(subject)
+            get_attachments(service, 'me', message['id'], 't1_attachments/')
         else:
-            print('not right subject')
+            print('Message has wrong subject.')
             continue
-# [END gmail_quickstart]
