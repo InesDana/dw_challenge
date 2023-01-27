@@ -6,22 +6,25 @@ from sqlalchemy import create_engine
 directory = 't1_attachments'
 
 engine = create_engine('postgresql://postgres:assessment2023@localhost:5432/DWchallenge_t1')
-
-# iterate over files in directory
+table_name = 'reports'
+# iterate over files in directory and read
+counter =0
 for filename in os.scandir(directory):
     if filename.is_file() and filename.name.endswith(".csv") :
-        df=pd.read_csv(filename)
-        # Save the data from dataframe to postgres
-        table_name='report_'+filename.name[:4]+'_'+filename.name[5:7]+'_'+filename.name[8:10]
-        df.to_sql(
+        counter = counter +1
+        if counter == 1:
+            df = pd.read_csv(filename)
+        else:
+            df = df.append(pd.read_csv(filename),ignore_index=True)
+
+
+df=df.drop_duplicates()
+
+ # Save the data from dataframe to postgres
+df.to_sql(
             table_name,
             engine,
-            index=False,  # Not copying over the index
-            if_exists='replace' # replace table
+            index=True,  # Not copying over the index
+            if_exists='replace'  # append or replace table
         )
-        print(table_name+' table saved to database')
-
-
-
-
-
+print(table_name+' table saved to database')
