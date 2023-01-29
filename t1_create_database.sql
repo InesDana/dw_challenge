@@ -5,11 +5,31 @@ ALTER COLUMN "Post Created" TYPE timestamptz USING "Post Created"::timestamp wit
 ALTER COLUMN "Post Created Date" TYPE date USING "Post Created Date"::date,
 ALTER COLUMN "Post Created Time" TYPE time USING "Post Created Time"::time;
 
+-- if script already ran, type of "Total Interactions" has already been adapted
+DO $$
+DECLARE
+t text:= (SELECT data_type FROM information_schema.columns 
+	 WHERE table_name = 'reports' AND column_name='Total Interactions');
+BEGIN
+IF t != 'integer' THEN
 UPDATE reports
 SET "Total Interactions" = REPLACE("Total Interactions",',','');
 ALTER TABLE reports
 ALTER COLUMN "Total Interactions" TYPE int USING "Total Interactions"::int;
+END IF;
+END $$;
 
+-- drop tables of database if already exists
+DO $$
+DECLARE t record;
+BEGIN
+    FOR t IN SELECT table_name
+            FROM information_schema.tables
+            WHERE table_name!='reports' AND table_schema='public'
+    LOOP
+        EXECUTE 'DROP TABLE IF EXISTS ' || t.table_name || ' CASCADE';
+    END LOOP;
+END$$;
 
 -- create table for database from reports table
 CREATE TABLE pages AS
@@ -64,12 +84,15 @@ ADD COLUMN id_intern SERIAL PRIMARY KEY;
 CREATE TABLE posts AS
 SELECT index, "Facebook Id", "Likes at Posting", "Post Created", "Type", 
 "Total Interactions", "Likes", "Comments", "Shares", "Love", "Wow", "Haha", "Sad", "Angry", "Care", "Video Share Status", 
-"Video Length", "URL", "Message", "Description", "Overperforming Score ", "Sponsor Id", "Sponsor Category", "Link", "Link Text"
+"Is Video Owner?","Post Views","Total Views","Total Views For All Crossposts","Video Length", "URL", "Message", 
+"Description", "Overperforming Score ", "Sponsor Id", "Sponsor Category", "Link", "Link Text"
 FROM reports;
 
 ALTER TABLE posts
 ADD COLUMN sponsor_id int,
-ADD COLUMN link_id int;
+ADD COLUMN link_id int,
+ALTER "Is Video Owner?" TYPE boolean 
+USING CASE "Is Video Owner?" WHEN 'Yes' THEN True WHEN 'No' THEN False ELSE NULL END;
 
 UPDATE posts 
 SET link_id = id_intern FROM links
