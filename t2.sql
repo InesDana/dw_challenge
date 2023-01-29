@@ -44,7 +44,7 @@ SELECT column_name
    WHERE table_name = 'data_t2_table'
      AND (column_name LIKE '%18%' OR column_name LIKE '%34%');
 
--- calcualte sums for sets of columns        ? TODO: possible automate this in loop?
+-- calcualte sums for sets of columns        
 SELECT ("F.13-17" + "F.18-24" + "F.25-34" + "F.35-44" + "F.45-54" + "F.55-64" + "F.65+") AS f_posts,
 	("M.13-17" + "M.18-24" + "M.25-34" + "M.35-44" + "M.45-54" + "M.55-64" + "M.65+") AS m_posts,
 	("U.18-24" + "U.25-34" + "U.35-44" + COALESCE("U.45-54",0) + COALESCE("U.55-64",0) + "U.65+") AS u_posts,
