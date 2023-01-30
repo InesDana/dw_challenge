@@ -1,24 +1,3 @@
--- change data types in original tavle from all csv files without douplicates
-ALTER TABLE reports
-ALTER COLUMN "Page Created" TYPE timestamp USING "Page Created"::timestamp without time zone,
-ALTER COLUMN "Post Created" TYPE timestamptz USING "Post Created"::timestamp with time zone,
-ALTER COLUMN "Post Created Date" TYPE date USING "Post Created Date"::date,
-ALTER COLUMN "Post Created Time" TYPE time USING "Post Created Time"::time;
-
--- if script already ran, type of "Total Interactions" has already been adapted
-DO $$
-DECLARE
-t text:= (SELECT data_type FROM information_schema.columns 
-	 WHERE table_name = 'reports' AND column_name='Total Interactions');
-BEGIN
-IF t != 'integer' THEN
-UPDATE reports
-SET "Total Interactions" = REPLACE("Total Interactions",',','');
-ALTER TABLE reports
-ALTER COLUMN "Total Interactions" TYPE int USING "Total Interactions"::int;
-END IF;
-END $$;
-
 -- drop tables of database if already exists
 DO $$
 DECLARE t record;
@@ -37,6 +16,9 @@ SELECT DISTINCT "Facebook Id","User Name","Page Name", "Page Category", "Page Ad
 FROM reports;
 ALTER TABLE pages 
 ADD CONSTRAINT pk_u PRIMARY KEY ("Facebook Id"); 
+
+ALTER TABLE pages
+ALTER COLUMN "Page Created" TYPE timestamp USING "Page Created"::timestamp without time zone;
 
 CREATE TABLE page_categories AS
 SELECT DISTINCT "Page Category" FROM reports;
@@ -88,11 +70,20 @@ SELECT index, "Facebook Id", "Likes at Posting", "Post Created", "Type",
 "Description", "Overperforming Score ", "Sponsor Id", "Sponsor Category", "Link", "Link Text"
 FROM reports;
 
+-- change column values so that they can be converteed from text to int in code block thereafter
+UPDATE posts
+SET "Total Interactions" = REPLACE("Total Interactions",',','');
+
+-- change data types
 ALTER TABLE posts
+ALTER COLUMN "Is Video Owner?" TYPE boolean 
+USING CASE "Is Video Owner?" WHEN 'Yes' THEN True WHEN 'No' THEN False ELSE NULL END,
+ALTER COLUMN "Total Interactions" TYPE int USING "Total Interactions"::int,
+ALTER COLUMN "Post Created" TYPE timestamptz USING "Post Created"::timestamp with time zone,
+ALTER COLUMN "Video Length" TYPE time USING "Video Length"::time,
+-- add unique idetifires for links and sponsors
 ADD COLUMN sponsor_id int,
-ADD COLUMN link_id int,
-ALTER "Is Video Owner?" TYPE boolean 
-USING CASE "Is Video Owner?" WHEN 'Yes' THEN True WHEN 'No' THEN False ELSE NULL END;
+ADD COLUMN link_id int;
 
 UPDATE posts 
 SET link_id = id_intern FROM links
@@ -108,6 +99,7 @@ DROP COLUMN "Link Text",
 DROP COLUMN "Sponsor Id",
 DROP COLUMN "Sponsor Category";
 
+-- add keys for posts table
 ALTER TABLE posts
 ADD CONSTRAINT pk_posts PRIMARY KEY ("index"),
 ADD CONSTRAINT fk_posts_pages FOREIGN KEY ("Facebook Id") REFERENCES pages("Facebook Id"),
