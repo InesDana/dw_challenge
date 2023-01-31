@@ -32,5 +32,6 @@ Other possible insights could for example include grouping for page categories.
 It also calculates the sums of the view times for each gender and ages 18-34 ages. The results fo the query are shown in *t2_3_sums_sceenshot.png*.
 
 ## Installation
-The packages required can be installed with:
-pip install -r requirements.txt
+The packages required can be installed with: 
+
+    pip install -r requirements.txt
