@@ -30,3 +30,7 @@ Other possible insights could for example include grouping for page categories.
 #### t2.sql
 ... unpacks the column 'post_video_view_time_by_age_bucket_and_gender' into data_t2_table, respectively data_t2_table_long, using *fct_create_jsonb_flat_table.sql*.  
 It also calculates the sums of the view times for each gender and ages 18-34 ages. The results fo the query are shown in *t2_3_sums_sceenshot.png*.
+
+## Installation
+The packages required can be installed with:
+pip install -r requirements.txt
